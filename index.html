@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>私の日記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1208;
+    --ink-light: #4a3520;
+    --ink-faint: #8a6a48;
+    --paper: #f7f0e6;
+    --paper-warm: #efe4d0;
+    --paper-dark: #e4d4bc;
+    --accent: #b5451b;
+    --accent-soft: #d4622a;
+    --gold: #c89a3c;
+    --teal: #2a7a72;
+    --rule: rgba(100,70,30,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Noto Serif JP', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle paper texture via pseudo element */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 31px,
+        var(--rule) 31px,
+        var(--rule) 32px
+      );
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 20px 100px;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    text-align: center;
+    padding: 48px 0 32px;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    display: block;
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 20px auto 0;
+  }
+
+  .header-en {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--ink-faint);
+    letter-spacing: 0.25em;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 300;
+    letter-spacing: 0.5em;
+    color: var(--ink);
+    text-indent: 0.5em;
+  }
+
+  .entry-count {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+  }
+
+  /* ===== TABS ===== */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--paper-dark);
+  }
+
+  .tab {
+    padding: 10px 24px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    color: var(--ink-faint);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.1em;
+    margin-bottom: -1px;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ===== FILTERS ===== */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    margin-right: 4px;
+  }
+
+  .chip {
+    padding: 4px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--paper-dark);
+    background: rgba(255,255,255,0.5);
+    color: var(--ink-light);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .chip:hover { background: rgba(255,255,255,0.9); }
+  .chip.active {
+    background: var(--ink-light);
+    color: var(--paper);
+    border-color: var(--ink-light);
+  }
+
+  .chip.mood-chip.active { background: var(--active-color); border-color: var(--active-color); }
+
+  /* ===== ENTRY LIST ===== */
+  .entries-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .entry-card {
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--paper-dark);
+    border-radius: 4px;
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .entry-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--card-color, var(--paper-dark));
+    transition: width 0.2s;
+  }
+
+  .entry-card:hover {
+    background: rgba(255,255,255,0.9);
+    transform: translateX(3px);
+    box-shadow: 2px 4px 16px rgba(100,60,10,0.1);
+  }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    flex: 1;
+  }
+
+  .card-date {
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-align: right;
+    flex-shrink: 0;
+    line-height: 1.5;
+  }
+
+  .card-preview {
+    font-size: 13px;
+    color: var(--ink-light);
+    line-height: 1.7;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .card-footer {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .mood-badge {
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+
+  .tag-badge {
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: var(--paper-dark);
+    color: var(--ink-faint);
+  }
+
+  /* ===== WRITE VIEW ===== */
+  .write-section {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid var(--paper-dark);
+    border-radius: 4px;
+    padding: 28px 32px;
+  }
+
+  .write-section h2 {
+    font-size: 18px;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    color: var(--ink-faint);
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.2em;
+    margin-bottom: 8px;
+  }
+
+  .form-input, .form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--paper-dark);
+    border-radius: 2px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-input:focus, .form-textarea:focus {
+    border-color: var(--gold);
+    background: rgba(255,255,255,0.95);
+  }
+
+  .form-textarea {
+    min-height: 200px;
+    resize: vertical;
+    line-height: 1.9;
+  }
+
+  /* Mood selector */
+  .mood-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .mood-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    background: var(--paper-warm);
+    color: var(--ink-light);
+  }
+
+  .mood-btn:hover { opacity: 0.8; }
+  .mood-btn.selected {
+    color: #fff;
+    border-color: transparent;
+  }
+
+  /* Tag input */
+  .tag-input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .tag-input-row .form-input { flex: 1; }
+
+  .tag-add-btn {
+    padding: 12px 20px;
+    background: var(--ink-light);
+    color: var(--paper);
+    border: none;
+    border-radius: 2px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .tag-add-btn:hover { background: var(--ink); }
+
+  .tags-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .tag-remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: var(--paper-dark);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--ink-light);
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .tag-remove:hover { background: #d4a070; color: #fff; }
+  .tag-remove span { font-size: 10px; }
+
+  /* Submit */
+  .submit-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .btn-primary {
+    padding: 12px 32px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    font-size: 14px;
+    font-family: inherit;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: var(--accent-soft); }
+  .btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+  .btn-secondary {
+    padding: 12px 20px;
+    background: transparent;
+    color: var(--ink-faint);
+    border: 1px solid var(--paper-dark);
+    border-radius: 2px;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { background: var(--paper-dark); }
+
+  /* ===== DETAIL VIEW ===== */
+  .detail-section {
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--paper-dark);
+    border-radius: 4px;
+    padding: 32px 36px;
+  }
+
+  .detail-header {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .detail-title {
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+
+  .detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .detail-date { font-size: 12px; color: var(--ink-faint); }
+
+  .detail-body {
+    font-size: 15px;
+    line-height: 2;
+    color: var(--ink-light);
+    white-space: pre-wrap;
+    margin-bottom: 24px;
+  }
+
+  .detail-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .detail-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .btn-danger {
+    padding: 10px 20px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-danger:hover { background: var(--accent); color: #fff; }
+
+  /* ===== EMPTY STATE ===== */
+  .empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--ink-faint);
+  }
+
+  .empty-icon {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 64px;
+    opacity: 0.3;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .empty p { font-size: 14px; line-height: 1.8; }
+
+  /* ===== CONFIRM MODAL ===== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,10,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(2px);
+  }
+
+  .modal-box {
+    background: var(--paper);
+    border: 1px solid var(--paper-dark);
+    border-radius: 4px;
+    padding: 32px 36px;
+    max-width: 360px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+
+  .modal-box h3 {
+    font-size: 16px;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+
+  .modal-box p {
+    font-size: 13px;
+    color: var(--ink-faint);
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+
+  .modal-btns { display: flex; gap: 12px; justify-content: center; }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .entry-card, .write-section, .detail-section {
+    animation: fadeIn 0.3s ease both;
+  }
+
+  .entries-grid .entry-card:nth-child(1) { animation-delay: 0.05s; }
+  .entries-grid .entry-card:nth-child(2) { animation-delay: 0.10s; }
+  .entries-grid .entry-card:nth-child(3) { animation-delay: 0.15s; }
+  .entries-grid .entry-card:nth-child(4) { animation-delay: 0.20s; }
+  .entries-grid .entry-card:nth-child(5) { animation-delay: 0.25s; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="header-en">My Journal</div>
+    <h1>日　　記</h1>
+    <div class="entry-count" id="entryCount">0件の記録</div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('list')" id="tab-list">一覧</button>
+    <button class="tab" onclick="switchTab('write')" id="tab-write">✏ 書く</button>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div id="view-list">
+    <div class="filters" id="filtersArea"></div>
+    <div class="entries-grid" id="entriesGrid"></div>
+  </div>
+
+  <!-- WRITE VIEW -->
+  <div id="view-write" style="display:none">
+    <div class="write-section">
+      <h2>新しい記録</h2>
+
+      <div class="form-group">
+        <label class="form-label">タイトル</label>
+        <input class="form-input" id="inputTitle" type="text" placeholder="今日のタイトル…">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">本文</label>
+        <textarea class="form-textarea" id="inputBody" placeholder="今日はどんな一日でしたか…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">気分</label>
+        <div class="mood-selector" id="moodSelector"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">タグ</label>
+        <div class="tag-input-row">
+          <input class="form-input" id="inputTag" type="text" placeholder="タグを入力…" onkeydown="handleTagKey(event)">
+          <button class="tag-add-btn" onclick="addTag()">追加</button>
+        </div>
+        <div class="tags-preview" id="tagsPreview"></div>
+      </div>
+
+      <div class="submit-row">
+        <button class="btn-secondary" onclick="switchTab('list')">キャンセル</button>
+        <button class="btn-primary" id="btnSave" onclick="saveEntry()">記録する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="view-detail" style="display:none">
+    <div class="detail-section" id="detailContent"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3>この日記を削除しますか？</h3>
+    <p>一度削除すると元に戻せません。</p>
+    <div class="modal-btns">
+      <button class="btn-danger" onclick="confirmDelete()">削除する</button>
+      <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MOODS = [
+  { emoji: '😊', label: '嬉しい', color: '#E8922A', bg: '#FEF3C7' },
+  { emoji: '😌', label: '穏やか', color: '#2A7A72', bg: '#D1FAF0' },
+  { emoji: '😔', label: '悲しい', color: '#5A5FC7', bg: '#E0E7FF' },
+  { emoji: '😤', label: '怒り', color: '#C0392B', bg: '#FEE2E2' },
+  { emoji: '😴', label: '眠い', color: '#7C5CBF', bg: '#EDE9FE' },
+  { emoji: '🤩', label: '最高！', color: '#C6861C', bg: '#FEF9C3' },
+];
+
+let entries = JSON.parse(localStorage.getItem('diary_entries') || '[]');
+let currentTags = [];
+let selectedMood = null;
+let currentView = 'list';
+let filterMood = null;
+let filterTag = null;
+let deleteTargetId = null;
+
+function save() {
+  localStorage.setItem('diary_entries', JSON.stringify(entries));
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+}
+function formatTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ===== VIEWS =====
+function switchTab(view) {
+  currentView = view;
+  document.getElementById('view-list').style.display = view === 'list' ? '' : 'none';
+  document.getElementById('view-write').style.display = view === 'write' ? '' : 'none';
+  document.getElementById('view-detail').style.display = view === 'detail' ? '' : 'none';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-' + (view === 'detail' ? 'list' : view));
+  if (tabEl) tabEl.classList.add('active');
+  if (view === 'list') renderList();
+  if (view === 'write') { resetForm(); setTimeout(() => document.getElementById('inputTitle').focus(), 50); }
+}
+
+function showDetail(id) {
+  const entry = entries.find(e => e.id === id);
+  if (!entry) return;
+  const mood = entry.mood ? MOODS.find(m => m.label === entry.mood) : null;
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-header">
+      <h2 class="detail-title">${esc(entry.title || '無題')}</h2>
+      <div class="detail-meta">
+        <span class="detail-date">${formatDate(entry.createdAt)} ${formatTime(entry.createdAt)}</span>
+        ${mood ? `<span class="mood-badge" style="background:${mood.bg};color:${mood.color}">${mood.emoji} ${mood.label}</span>` : ''}
+      </div>
+    </div>
+    <div class="detail-body">${esc(entry.content)}</div>
+    ${entry.tags.length > 0 ? `<div class="detail-tags">${entry.tags.map(t => `<span class="tag-badge">#${esc(t)}</span>`).join('')}</div>` : ''}
+    <div class="detail-actions">
+      <button class="btn-secondary" onclick="switchTab('list')">← 一覧へ戻る</button>
+      <button class="btn-danger" onclick="openModal('${entry.id}')">削除する</button>
+    </div>
+  `;
+  document.getElementById('view-list').style.display = 'none';
+  document.getElementById('view-write').style.display = 'none';
+  document.getElementById('view-detail').style.display = '';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  currentView = 'detail';
+}
+
+// ===== RENDER LIST =====
+function renderList() {
+  // Update count
+  document.getElementById('entryCount').textContent = entries.length + '件の記録';
+
+  // Build filters
+  const allTags = [...new Set(entries.flatMap(e => e.tags))].sort();
+  const usedMoods = [...new Set(entries.map(e => e.mood).filter(Boolean))];
+  let filtersHtml = '';
+  if (usedMoods.length > 0 || allTags.length > 0) {
+    filtersHtml = '<span class="filter-label">絞り込み:</span>';
+    usedMoods.forEach(ml => {
+      const m = MOODS.find(x => x.label === ml);
+      const isActive = filterMood === ml;
+      filtersHtml += `<button class="chip mood-chip ${isActive ? 'active' : ''}" style="--active-color:${m.color}" onclick="toggleMoodFilter('${ml}')">${m.emoji} ${ml}</button>`;
+    });
+    allTags.forEach(t => {
+      const isActive = filterTag === t;
+      filtersHtml += `<button class="chip ${isActive ? 'active' : ''}" onclick="toggleTagFilter('${esc(t)}')"># ${esc(t)}</button>`;
+    });
+    if (filterMood || filterTag) {
+      filtersHtml += `<button class="chip" onclick="clearFilters()" style="color:var(--accent)">✕ リセット</button>`;
+    }
+  }
+  document.getElementById('filtersArea').innerHTML = filtersHtml;
+
+  // Filter entries
+  let filtered = entries.filter(e => {
+    if (filterMood && e.mood !== filterMood) return false;
+    if (filterTag && !e.tags.includes(filterTag)) return false;
+    return true;
+  }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const grid = document.getElementById('entriesGrid');
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty">
+      <span class="empty-icon">✦</span>
+      <p>${entries.length === 0 ? '日記がまだありません。<br>「書く」タブから最初の記録を残しましょう。' : '該当する日記がありません。'}</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(entry => {
+    const mood = entry.mood ? MOODS.find(m => m.label === entry.mood) : null;
+    const cardColor = mood ? mood.color : 'var(--paper-dark)';
+    return `<div class="entry-card" style="--card-color:${cardColor}" onclick="showDetail('${entry.id}')">
+      <div class="card-top">
+        <div class="card-title">${esc(entry.title || '無題')}</div>
+        <div class="card-date">${formatDate(entry.createdAt)}<br>${formatTime(entry.createdAt)}</div>
+      </div>
+      <div class="card-preview">${esc(entry.content)}</div>
+      <div class="card-footer">
+        ${mood ? `<span class="mood-badge" style="background:${mood.bg};color:${mood.color}">${mood.emoji} ${mood.label}</span>` : ''}
+        ${entry.tags.map(t => `<span class="tag-badge">#${esc(t)}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMoodFilter(mood) {
+  filterMood = filterMood === mood ? null : mood;
+  renderList();
+}
+function toggleTagFilter(tag) {
+  filterTag = filterTag === tag ? null : tag;
+  renderList();
+}
+function clearFilters() {
+  filterMood = null;
+  filterTag = null;
+  renderList();
+}
+
+// ===== WRITE FORM =====
+function renderMoodSelector() {
+  document.getElementById('moodSelector').innerHTML = MOODS.map(m =>
+    `<button class="mood-btn ${selectedMood === m.label ? 'selected' : ''}"
+      style="${selectedMood === m.label ? `background:${m.color}` : ''}"
+      onclick="selectMood('${m.label}')">${m.emoji} ${m.label}</button>`
+  ).join('');
+}
+
+function selectMood(label) {
+  selectedMood = selectedMood === label ? null : label;
+  renderMoodSelector();
+}
+
+function resetForm() {
+  document.getElementById('inputTitle').value = '';
+  document.getElementById('inputBody').value = '';
+  document.getElementById('inputTag').value = '';
+  currentTags = [];
+  selectedMood = null;
+  renderMoodSelector();
+  renderTagsPreview();
+}
+
+function addTag() {
+  const val = document.getElementById('inputTag').value.trim().replace(/\s+/g, '_');
+  if (!val || currentTags.includes(val) || currentTags.length >= 8) return;
+  currentTags.push(val);
+  document.getElementById('inputTag').value = '';
+  renderTagsPreview();
+}
+
+function handleTagKey(e) {
+  if (e.key === 'Enter') { e.preventDefault(); addTag(); }
+}
+
+function removeTag(tag) {
+  currentTags = currentTags.filter(t => t !== tag);
+  renderTagsPreview();
+}
+
+function renderTagsPreview() {
+  document.getElementById('tagsPreview').innerHTML = currentTags.map(t =>
+    `<button class="tag-remove" onclick="removeTag('${esc(t)}')">#${esc(t)} <span>✕</span></button>`
+  ).join('');
+}
+
+function saveEntry() {
+  const title = document.getElementById('inputTitle').value.trim();
+  const body = document.getElementById('inputBody').value.trim();
+  if (!body) { document.getElementById('inputBody').focus(); return; }
+
+  const entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    title: title || '無題',
+    content: body,
+    mood: selectedMood,
+    tags: [...currentTags],
+    createdAt: new Date().toISOString(),
+  };
+
+  entries.unshift(entry);
+  save();
+  switchTab('list');
+}
+
+// ===== DELETE =====
+function openModal(id) {
+  deleteTargetId = id;
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeModal() {
+  deleteTargetId = null;
+  document.getElementById('modal').style.display = 'none';
+}
+function confirmDelete() {
+  if (!deleteTargetId) return;
+  entries = entries.filter(e => e.id !== deleteTargetId);
+  save();
+  closeModal();
+  switchTab('list');
+}
+
+// ===== UTILITY =====
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Init
+renderMoodSelector();
+renderList();
+</script>
+</body>
+</html>
